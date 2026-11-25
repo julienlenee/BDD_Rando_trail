@@ -1,0 +1,6 @@
+AND r.longueur <= ? AND r.difficulte = ? AND r.type_itineraire = ? AND r.pratique = ?
+
+                
+                AND r.difficulte = ? AND r.type_itineraire = ? AND r.pratique = ?
+
+                
