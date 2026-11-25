@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import flet as ft
 import flet_map as ftm
 import pandas as pd
@@ -26,8 +28,14 @@ IGN_WMTS_URL = (
 )
 
 
-def main(page: ft.Page) -> None:
-    page.title = "Randonnée dans les Côtes-d'Armor"
+def afficher_carte(
+    page: ft.Page,
+    nom_randonnee: str | None = None,
+    retour: Callable[[], None] | None = None,
+) -> None:
+    page.controls.clear()
+    page.padding = 0
+    page.title = nom_randonnee or "Randonnée dans les Côtes-d'Armor"
 
     # Convertit les lignes du tableau en coordonnées attendues par la carte.
     coordinates = [
@@ -87,8 +95,12 @@ def main(page: ft.Page) -> None:
     # Panneau latéral listant les étapes et leurs coordonnées.
     etapes = ft.Column(
         controls=[
-            ft.Text("Itinéraire d'exemple", size=20, weight=ft.FontWeight.BOLD),
-            ft.Text("Boucle schématique, non vérifiée sur le terrain."),
+            ft.Text(
+                nom_randonnee or "Itinéraire d'exemple",
+                size=20,
+                weight=ft.FontWeight.BOLD,
+            ),
+            ft.Text("Tracé indicatif, à adapter aux données réelles."),
             *[
                 ft.ListTile(
                     leading=ft.Icon(ft.Icons.LOCATION_ON, color=ft.Colors.RED),
@@ -105,20 +117,46 @@ def main(page: ft.Page) -> None:
         scroll=ft.ScrollMode.AUTO,
     )
 
-    # Place la liste à côté de la carte dans la fenêtre.
+    entete = ft.Row(
+        controls=[
+            ft.FilledButton(
+                content=ft.Text("Retour"),
+                icon=ft.Icons.ARROW_BACK,
+                on_click=lambda _event: retour(),
+            )
+            if retour is not None
+            else ft.Container(width=100),
+            ft.Text(page.title, size=22, weight=ft.FontWeight.BOLD),
+        ],
+        spacing=16,
+    )
+
+    # Place le bouton de retour au-dessus de la liste et de la carte.
     page.add(
         ft.SafeArea(
             expand=True,
-            content=ft.Row(
+            content=ft.Column(
                 controls=[
-                    ft.Container(content=etapes, padding=16),
-                    ft.Container(content=carte, expand=True),
+                    ft.Container(content=entete, padding=16),
+                    ft.Row(
+                        controls=[
+                            ft.Container(content=etapes, padding=16),
+                            ft.Container(content=carte, expand=True),
+                        ],
+                        expand=True,
+                        spacing=0,
+                    ),
                 ],
                 expand=True,
                 spacing=0,
             ),
         )
     )
+    page.update()
+
+
+def main(page: ft.Page) -> None:
+    afficher_carte(page)
 
 
 if __name__ == "__main__":

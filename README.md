@@ -1,11 +1,7 @@
 # BDD_Rando_trail
 Projet universitaire de base de données SQL.
 
-## Tester l'appel à l'API
-
-Le script `main.py` interroge l'API des itinéraires de randonnée des Côtes-d'Armor
-avec une requête HTTP `GET`. Cette URL renvoie un fichier CSV : le script en lit
-et affiche les cinq premiers itinéraires.
+## Lancer l'application
 
 Crée un environnement virtuel, installe la dépendance, puis lance le script depuis
 PowerShell dans le dossier du projet :
@@ -14,24 +10,15 @@ PowerShell dans le dossier du projet :
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
-python main.py
+.\.venv\Scripts\python.exe .\main.py
 ```
 
-Le script vérifie le statut HTTP avant de lire la réponse. En cas d'erreur réseau
-ou HTTP, il affiche un message explicite.
+`main.py` ouvre l'interface Flet de `UserInterface.py`. Les randonnées d'exemple
+sont listées à gauche et les filtres sont à droite. Clique sur une randonnée
+pour ouvrir sa vue cartographique dans la même fenêtre ; le bouton « Retour »
+revient à la recherche.
 
-## Carte interactive des Côtes-d'Armor
-
-`Test_map.py` ouvre une fenêtre Flet native avec une carte interactive centrée
-sur Saint-Brieuc. Elle affiche le fond Plan IGN v2 de la Géoplateforme, un
-itinéraire schématique et ses étapes :
-
-```powershell
-python -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe .\Test_map.py
-```
-
-La carte permet de zoomer et de se déplacer. L'itinéraire est illustratif et ne
-représente pas un sentier vérifié.
+Les randonnées et le tracé affiché sont des exemples à remplacer par les données
+réelles.
 git config --global user.name "Ton Nom"
 git config --global user.email "ton.email@exemple.com"
