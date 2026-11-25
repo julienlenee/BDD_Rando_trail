@@ -1,4 +1,5 @@
 from collections.abc import Callable
+import sqlite3
 
 import flet as ft
 import flet_map as ftm

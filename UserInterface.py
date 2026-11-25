@@ -15,7 +15,23 @@ class Randonnee:
     boucle: bool
     difficulte: str
 
+#RandoFit = Requete_BDD()
+'''for ligne in lignes:
+    nom, ville, distance, transport, boucle, difficulte = ligne
 
+    transports = (transport,) if isinstance(transport, str) else tuple(transport)
+    randonnees.append(
+        Randonnee(
+            nom=nom,
+            ville=ville,
+            distance_km=float(distance),
+            transports=transports,
+            boucle=boucle,
+            difficulte=difficulte,
+        )
+    )
+
+'''
 # Randonnées fictives utilisées comme exemples dans l'interface.
 RANDONNEES_EXEMPLE = (
     Randonnee(
@@ -47,7 +63,6 @@ RANDONNEES_EXEMPLE = (
         "Circuit de la baie", "Langueux", 9.8, ("À pied", "Vélo"), False, "Facile"
     ),
 )
-
 
 def rechercher_randonnees(
     ville: str,
@@ -113,7 +128,7 @@ def main(page: ft.Page) -> None:
         ],
     )
     message_erreur = ft.Text(color=ft.Colors.RED)
-
+        
     # Panneau de résultats : les cartes sont remplacées à chaque recherche.
     nombre_resultats = ft.Text()
     liste_resultats = ft.Column(expand=True, scroll=ft.ScrollMode.AUTO, spacing=10)
