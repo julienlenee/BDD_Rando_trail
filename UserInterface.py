@@ -17,8 +17,29 @@ class Randonnee:
     transports: tuple[str, ...]
     boucle: bool
     difficulte: str
+    description: str = ""
+    denivele_positif: int | None = None
+    denivele_negatif: int | None = None
+    altitude_min: int | None = None
+    altitude_max: int | None = None
 
+#RandoFit = Requete_BDD()
+'''for ligne in lignes:
+    nom, ville, distance, transport, boucle, difficulte = ligne
 
+    transports = (transport,) if isinstance(transport, str) else tuple(transport)
+    randonnees.append(
+        Randonnee(
+            nom=nom,
+            ville=ville,
+            distance_km=float(distance),
+            transports=transports,
+            boucle=boucle,
+            difficulte=difficulte,
+        )
+    )
+
+'''
 # Randonnées fictives utilisées comme exemples dans l'interface.
 RANDONNEES_EXEMPLE = (
     Randonnee(
@@ -28,9 +49,24 @@ RANDONNEES_EXEMPLE = (
         ("À pied", "Vélo"),
         True,
         "Facile",
+        "Balade d'exemple autour du port et des sentiers de Saint-Brieuc.",
+        75,
+        -75,
+        4,
+        55,
     ),
     Randonnee(
-        "Balade des Rosaires", "Plérin", 8.4, ("À pied", "Cheval"), True, "Facile"
+        "Balade des Rosaires",
+        "Plérin",
+        8.4,
+        ("À pied", "Cheval"),
+        True,
+        "Facile",
+        "Découverte des plages et du littoral de Plérin.",
+        52,
+        -50,
+        0,
+        45,
     ),
     Randonnee(
         "Boucle du Gouët",
@@ -39,38 +75,53 @@ RANDONNEES_EXEMPLE = (
         ("Vélo", "Cheval"),
         True,
         "Modérée",
+        "Parcours vallonné autour de la vallée du Gouët.",
+        185,
+        -185,
+        15,
+        145,
     ),
     Randonnee(
-        "Sentier côtier de Binic", "Binic", 12.5, ("À pied",), False, "Modérée"
+        "Sentier côtier de Binic",
+        "Binic",
+        12.5,
+        ("À pied",),
+        False,
+        "Modérée",
+        "Suivez le sentier côtier et ses points de vue.",
+        140,
+        -140,
+        0,
+        80,
     ),
     Randonnee(
-        "Chemins de campagne", "Plélo", 18.0, ("Cheval",), True, "Difficile"
+        "Chemins de campagne",
+        "Plélo",
+        18.0,
+        ("Cheval",),
+        True,
+        "Difficile",
+        "Chemins de campagne sur les hauteurs de Plélo.",
+        230,
+        -230,
+        40,
+        190,
     ),
     Randonnee(
-        "Circuit de la baie", "Langueux", 9.8, ("À pied", "Vélo"), False, "Facile"
+        "Circuit de la baie",
+        "Langueux",
+        9.8,
+        ("À pied", "Vélo"),
+        False,
+        "Facile",
+        "Balade d'exemple entre la baie et les chemins de Langueux.",
+        62,
+        -60,
+        0,
+        48,
     ),
 )
 
-def req_sql(ville_flet, distancekm_flet, transports_flet, boucle_flet, difficulte_flet):
-    
-    cur.execute("""
-                SELECT r.nom_itineraire,c.communes_nom,r.longueur,r.presentation,r.difficulte,r.altitude_min,r.altitude_max,r.denivele_negatif,r.denivele_positif,r.pratique,r.type_itineraire FROM randonnee AS r
-                JOIN communes AS c
-                ON r.communes_code = c.communes_code
-                WHERE c.communes_nom = ? AND r.longueur <= ? 
-            """,
-            (
-                ville_flet,
-                distancekm_flet*1000,
-                difficulte_flet,
-                boucle_flet,
-                transports_flet,
-            ),
-    )
-    data = cur.fetchall()
-    print(data)
-
-req_sql("PERROS-GUIREC",9,"Pédestre","Boucle","Facile")
 
 def rechercher_randonnees(
     ville: str,
@@ -136,7 +187,7 @@ def main(page: ft.Page) -> None:
         ],
     )
     message_erreur = ft.Text(color=ft.Colors.RED)
-
+        
     # Panneau de résultats : les cartes sont remplacées à chaque recherche.
     nombre_resultats = ft.Text()
     liste_resultats = ft.Column(expand=True, scroll=ft.ScrollMode.AUTO, spacing=10)
@@ -159,6 +210,11 @@ def main(page: ft.Page) -> None:
                         page,
                         selection.nom,
                         retour=lambda: afficher_recherche(page),
+                        description=selection.description,
+                        denivele_positif=selection.denivele_positif,
+                        denivele_negatif=selection.denivele_negatif,
+                        altitude_min=selection.altitude_min,
+                        altitude_max=selection.altitude_max,
                     ),
                 )
             )

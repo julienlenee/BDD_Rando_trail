@@ -1,4 +1,5 @@
 from collections.abc import Callable
+import sqlite3
 
 import flet as ft
 import flet_map as ftm
@@ -32,6 +33,12 @@ def afficher_carte(
     page: ft.Page,
     nom_randonnee: str | None = None,
     retour: Callable[[], None] | None = None,
+    *,
+    description: str | None = None,
+    denivele_positif: int | float | None = None,
+    denivele_negatif: int | float | None = None,
+    altitude_min: int | float | None = None,
+    altitude_max: int | float | None = None,
 ) -> None:
     page.controls.clear()
     page.padding = 0
@@ -92,14 +99,33 @@ def afficher_carte(
         ],
     )
 
-    # Panneau latéral listant les étapes et leurs coordonnées.
+    # Affiche les informations de la randonnée avant le résumé des étapes.
+    description_affichee = description.strip() if description else "Non renseignée"
     etapes = ft.Column(
         controls=[
+            ft.Text("Description", weight=ft.FontWeight.BOLD),
+            ft.Text(description_affichee),
             ft.Text(
-                nom_randonnee or "Itinéraire d'exemple",
-                size=20,
-                weight=ft.FontWeight.BOLD,
+                f"Dénivelé positif : {denivele_positif:+g} m"
+                if denivele_positif is not None
+                else "Dénivelé positif : Non renseigné"
             ),
+            ft.Text(
+                f"Dénivelé négatif : {denivele_negatif:g} m"
+                if denivele_negatif is not None
+                else "Dénivelé négatif : Non renseigné"
+            ),
+            ft.Text(
+                f"Altitude minimale : {altitude_min:g} m"
+                if altitude_min is not None
+                else "Altitude minimale : Non renseignée"
+            ),
+            ft.Text(
+                f"Altitude maximale : {altitude_max:g} m"
+                if altitude_max is not None
+                else "Altitude maximale : Non renseignée"
+            ),
+            ft.Text("Résumé des étapes", size=18, weight=ft.FontWeight.BOLD),
             ft.Text("Tracé indicatif, à adapter aux données réelles."),
             *[
                 ft.ListTile(
@@ -117,18 +143,27 @@ def afficher_carte(
         scroll=ft.ScrollMode.AUTO,
     )
 
+    bouton_retour = (
+        ft.FilledButton(
+            content=ft.Text("Retour"),
+            icon=ft.Icons.ARROW_BACK,
+            width=120,
+            on_click=lambda _event: retour(),
+        )
+        if retour is not None
+        else ft.Container(width=120)
+    )
     entete = ft.Row(
         controls=[
-            ft.FilledButton(
-                content=ft.Text("Retour"),
-                icon=ft.Icons.ARROW_BACK,
-                on_click=lambda _event: retour(),
-            )
-            if retour is not None
-            else ft.Container(width=100),
-            ft.Text(page.title, size=22, weight=ft.FontWeight.BOLD),
+            bouton_retour,
+            ft.Container(
+                content=ft.Text(page.title, size=22, weight=ft.FontWeight.BOLD),
+                alignment=ft.Alignment.CENTER,
+                expand=True,
+            ),
+            ft.Container(width=120),
         ],
-        spacing=16,
+        spacing=0,
     )
 
     # Place le bouton de retour au-dessus de la liste et de la carte.

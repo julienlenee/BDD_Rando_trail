@@ -19,6 +19,7 @@ pour ouvrir sa vue cartographique dans la même fenêtre ; le bouton « Retour �
 revient à la recherche.
 
 Les randonnées et le tracé affiché sont des exemples à remplacer par les données
-réelles.
+réelles. La vue cartographique affiche aussi une description, les dénivelés
+positif et négatif, ainsi que les altitudes minimales et maximales d'exemple.
 git config --global user.name "Ton Nom"
 git config --global user.email "ton.email@exemple.com"
