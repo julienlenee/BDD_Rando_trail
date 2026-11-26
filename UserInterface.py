@@ -158,6 +158,7 @@ def main(page: ft.Page) -> None: #--------------------------------------------- 
                     on_click=lambda _event, selection=randonnee: afficher_carte(
                         page,
                         selection.nom,
+                        selection.ville,
                         retour=lambda: afficher_recherche(page),
                         description=selection.description,
                         denivele_positif=selection.denivele_positif,
