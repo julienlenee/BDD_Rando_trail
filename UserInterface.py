@@ -78,30 +78,15 @@ def req_sql(
     return data
 
 def FindRando(ville1,distance1,format_boucle1,difficulte1):
-    res = req_sql(ville1, distance1, format_boucle1, difficulte1)
+    res = req_sql(ville1, distance1, format_boucle1, difficulte1) #Requete vers BDD en fonction des filtres
 
     randonnees = []
+    for ligne in res: # Pour chaque ligne on recupère les variables
+        nom,ville,distance,presentation,difficulte,altitude_min,altitude_max,denivele_negatif,denivele_positif,transport,type_itineraire = ligne
 
-    for ligne in res:
-        (
-            nom,
-            ville,
-            distance,
-            presentation,
-            difficulte,
-            altitude_min,
-            altitude_max,
-            denivele_negatif,
-            denivele_positif,
-            transport,
-            type_itineraire,
-        ) = ligne
+        transports = (transport,) if isinstance(transport, str) else tuple(transport or ()) #Gestion du format particulier
 
-        transports = (
-            (transport,) if isinstance(transport, str) else tuple(transport or ())
-        )
-
-        randonnees.append(
+        randonnees.append(   # création d'une liste d'objet randonnée
             Randonnee(
                 nom=nom,
                 ville=ville.strip(),
