@@ -147,7 +147,7 @@ def main(page: ft.Page) -> None: #--------------------------------------------- 
                     on_click=lambda _event, selection=randonnee: afficher_carte(
                         page,
                         selection.nom,
-                        retour=lambda: afficher_recherche(page),# Gestion du bouton retour lié à la page de recherche
+                        retour=lambda: afficher_recherche(page),
                         description=selection.description,
                         denivele_positif=selection.denivele_positif,
                         denivele_negatif=selection.denivele_negatif,

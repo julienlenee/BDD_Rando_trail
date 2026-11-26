@@ -1,4 +1,5 @@
 from collections.abc import Callable
+
 import sqlite3
 
 import flet as ft
@@ -27,6 +28,38 @@ IGN_WMTS_URL = (
     "&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM_0_19"
     "&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}"
 )
+
+def recup_trace(nom:str,ville:str| None = None)-> tuple[str | None, str | None]:
+    connection = sqlite3.connect("rando29.db")
+    cur = connection.cursor()
+    
+    if ville :
+        cur.execute("""
+                SELECT r.rando_uuid,t.geometry FROM randonnee AS r
+                JOIN communes AS c ON r.communes_code = c.communes_code
+                LEFT JOIN trace AS t ON t.trace_uuid = r.rando_uuid
+                WHERE TRIM(r.nom_itineraire) = TRIM(?)
+                AND TRIM(c.communes_nom) = TRIM(?)
+                LIMIT 1
+                """,
+                (nom,ville),
+                )
+    else :
+        cur.execute("""
+                SELECT r.rando_uuid,t.geometry FROM randonnee AS r
+                JOIN trace AS t ON t.trace_uuid = r.rando_uuid
+                WHERE TRIM(r.nom_itineraire) = TRIM(?)
+                LIMIT 1
+                """,
+                (nom),
+                )
+    data = cur.fetchone()
+    connection.close()
+    if not data:
+        return None, None
+    return data[0], data[1]
+    
+
 
 
 def afficher_carte(
