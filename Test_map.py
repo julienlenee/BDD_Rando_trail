@@ -8,6 +8,7 @@ import flet as ft
 import flet_map as ftm
 import pandas as pd
 
+#On centre la carte sur les cotes d'armor
 CENTRE = ftm.MapLatitudeLongitude(latitude=48.5142, longitude=-2.7657)
 
 IGN_WMTS_URL = (
@@ -21,7 +22,7 @@ IGN_WMTS_URL = (
 #conversion des points projetées lambert 93 en latitude longitude demandé par flet
 VERS_WGS84 = Transformer.from_crs("EPSG:2154", "EPSG:4326", always_xy=True)
 
-#fonction pour récupérer les trace dans la base à partir du trajet sélectionné
+#fonction pour récupérer les traces dans la base à partir du trajet sélectionné
 def recup_trace(nom:str,ville:str| None = None)-> tuple[str | None, str | None]:
     connection = sqlite3.connect("rando29.db")
     cur = connection.cursor()
@@ -44,7 +45,7 @@ def recup_trace(nom:str,ville:str| None = None)-> tuple[str | None, str | None]:
                 WHERE TRIM(r.nom_itineraire) = TRIM(?)
                 LIMIT 1
                 """,
-                (nom),
+                (nom,),
                 )
     data = cur.fetchone()
     connection.close()
@@ -95,7 +96,7 @@ def afficher_carte(
     if points_trace:
         carte_widget: ft.Control = ftm.Map(
             expand=True,
-            initial_center=points_trace[0],
+            initial_center=points_trace[0], #Centre sur le debut de la rando
             initial_zoom=13,
             layers=[
                 ftm.TileLayer(
@@ -106,7 +107,6 @@ def afficher_carte(
                         f"Erreur de chargement d'une tuile IGN : {event.data}"
                     ),
                 ),
-                ftm.SimpleAttribution(text="© IGN - Géoplateforme"),
                 ftm.PolylineLayer(
                     polylines=[
                         ftm.PolylineMarker(
@@ -171,7 +171,6 @@ def afficher_carte(
                         f"Erreur de chargement d'une tuile IGN : {event.data}"
                     ),
                 ),
-                ftm.SimpleAttribution(text="© IGN - Géoplateforme"),
             ],
         )
         carte_widget = ft.Stack(
