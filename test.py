@@ -2,20 +2,6 @@ import json
 import requests
 import sqlite3
 
-"""
-url = "https://datarmor.cotesdarmor.fr/data-fair/api/v1/datasets/itineraires-de-randonnee-inscrits-au-pdipr-du-departement-des-cotes-darmor/lines"
-
-reponse = requests.get(url, params={"size": 2}, timeout=10)
-reponse.raise_for_status()
-
-donnees = reponse.json()
-
-print("Clés principales :", list(donnees.keys()))
-print("Nombre total :", donnees.get("total"))
-print(json.dumps(donnees["results"][0], indent=2, ensure_ascii=False))
-"""
-
-
 URL = "https://datarmor.cotesdarmor.fr/data-fair/api/v1/datasets/itineraires-de-randonnee-inscrits-au-pdipr-du-departement-des-cotes-darmor/lines"
 TAILLE_PAGE = 100
 
