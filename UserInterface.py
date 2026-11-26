@@ -29,7 +29,6 @@ def req_sql(ville_flet=None,distancekm_flet=None,boucle_flet=None,difficulte_fle
     conditions = [] # stock les requetes des filtres récupérés
     parametres = []
 
-    #------------------------------------------------ Formatage des saisies -----
     if ville_flet and str(ville_flet).strip():
         conditions.append("TRIM(c.communes_nom) = TRIM(?) COLLATE NOCASE")
         parametres.append(str(ville_flet).strip())

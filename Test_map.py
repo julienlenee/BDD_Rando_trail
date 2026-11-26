@@ -1,5 +1,5 @@
 from collections.abc import Callable
-
+import html
 import sqlite3
 import re
 from pyproj import Transformer 
@@ -70,7 +70,29 @@ def geometry_vers_points(geometry: str | None) -> list[ftm.MapLatitudeLongitude]
             lon, lat = VERS_WGS84.transform(x, y)
             points.append(ftm.MapLatitudeLongitude(latitude=lat, longitude=lon))
 
-    return points   
+    return points
+
+def nettoyer_description(texte: str | None) -> str:
+    if not texte:
+        return ""
+
+    propre = str(texte).strip()
+
+    # Retire d'éventuels crochets englobant tout le texte, ex. ["<p>..."] ou [<p>...]
+    if propre.startswith("[") and propre.endswith("]"):
+        propre = propre[1:-1].strip()
+
+    # Décode les entités HTML (&eacute;, &agrave;, &rsquo;, etc.)
+    propre = html.unescape(propre)
+
+    # Supprime les balises HTML (<p>, </p>, <br>, etc.)
+    propre = re.sub(r"<[^>]+>", " ", propre)
+
+    # Nettoie les espaces multiples et les espaces avant la ponctuation
+    propre = re.sub(r"\s+", " ", propre)
+    propre = re.sub(r"\s+([!?;:])", r"\1", propre)
+
+    return propre.strip()   
 
 
 
@@ -196,12 +218,14 @@ def afficher_carte(
             ft.Text("Cette trace n'est pas disponible"),
         ]
 
-    description_affichee = description.strip() if description else "Non renseignée",
+    description_propre = nettoyer_description(description)
+    #description_affichee = description_propre.strip(),
+    
             
     etapes = ft.Column(
         controls=[
             ft.Text("Description", weight=ft.FontWeight.BOLD),
-            ft.Card(content=ft.Container(ft.Column(ft.Text(description_affichee),scroll=ft.ScrollMode.AUTO),),),
+            ft.Card(content=ft.Container(ft.Column(ft.Text(description_propre),scroll=ft.ScrollMode.AUTO),),),
             ft.Text(
                 f"Dénivelé positif : {denivele_positif:+g} m"
                 if denivele_positif is not None
