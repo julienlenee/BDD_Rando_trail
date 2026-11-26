@@ -1,26 +1,15 @@
 from collections.abc import Callable
 
 import sqlite3
+import re
+from pyproj import Transformer 
 
 import flet as ft
 import flet_map as ftm
 import pandas as pd
 
-
-# Définition du centre de la carte et étapes de l'itinéraire d'exemple ------------------------------------
 CENTRE = ftm.MapLatitudeLongitude(latitude=48.5142, longitude=-2.7657)
-ITINERAIRE = pd.DataFrame(
-    [
-        ("Départ / arrivée", 48.5142, -2.7657),
-        ("Étape 1", 48.5210, -2.7820),
-        ("Étape 2", 48.5290, -2.7690),
-        ("Étape 3", 48.5260, -2.7490),
-    ],
-    columns=("étape", "latitude", "longitude"),
-)
-#---------------------------------------------------------------------------------------------------------
 
-# Flet remplace {z}, {x} et {y} par le zoom et les coordonnées de chaque tuile.
 IGN_WMTS_URL = (
     "https://data.geopf.fr/wmts?"
     "SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0"
@@ -29,6 +18,10 @@ IGN_WMTS_URL = (
     "&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}"
 )
 
+#conversion des points projetées lambert 93 en latitude longitude demandé par flet
+VERS_WGS84 = Transformer.from_crs("EPSG:2154", "EPSG:4326", always_xy=True)
+
+#fonction pour récupérer les trace dans la base à partir du trajet sélectionné
 def recup_trace(nom:str,ville:str| None = None)-> tuple[str | None, str | None]:
     connection = sqlite3.connect("rando29.db")
     cur = connection.cursor()
@@ -58,13 +51,32 @@ def recup_trace(nom:str,ville:str| None = None)-> tuple[str | None, str | None]:
     if not data:
         return None, None
     return data[0], data[1]
-    
+
+#fonction pour convertir l'attribut geometry en liste de point Latitude Longitude
+def geometry_vers_points(geometry: str | None) -> list[ftm.MapLatitudeLongitude]:
+    if not geometry:
+        return []
+
+    match = re.search(r"LINESTRING\s*\((.+)\)", geometry.strip(), re.IGNORECASE)
+    if not match:
+        return []
+
+    points: list[ftm.MapLatitudeLongitude] = []
+    for paire in match.group(1).split(","):
+        morceaux = paire.strip().split()
+        if len(morceaux) >= 2:
+            x, y = float(morceaux[0]), float(morceaux[1])
+            lon, lat = VERS_WGS84.transform(x, y)
+            points.append(ftm.MapLatitudeLongitude(latitude=lat, longitude=lon))
+
+    return points   
 
 
 
 def afficher_carte(
     page: ft.Page,
     nom_randonnee: str | None = None,
+    ville: str | None = None,
     retour: Callable[[], None] | None = None,
     *,
     description: str | None = None,
@@ -77,67 +89,120 @@ def afficher_carte(
     page.padding = 0
     page.title = nom_randonnee or "Randonnée dans les Côtes-d'Armor"
 
-    # Convertit les lignes du tableau en coordonnées attendues par la carte.
-    coordinates = [
-        ftm.MapLatitudeLongitude(
-            latitude=etape["latitude"],
-            longitude=etape["longitude"],
-        )
-        for _, etape in ITINERAIRE.iterrows()
-    ]
-    # Ajoute le point de départ à la fin pour fermer la boucle.
-    coordinates.append(coordinates[0])
+    _, geometry = recup_trace(nom_randonnee, ville) if nom_randonnee else (None, None)
+    points_trace = geometry_vers_points(geometry)
 
-    # Les couches sont dessinées dans l'ordre : fond, tracé, puis marqueurs.
-    carte = ftm.Map(
-        expand=True,
-        initial_center=CENTRE,
-        initial_zoom=12,
-        layers=[
-            ftm.TileLayer(
-                url_template=IGN_WMTS_URL,
-                user_agent_package_name="rando-trail/1.0",
-                max_zoom=19,
-                on_image_error=lambda event: print(
-                    f"Erreur de chargement d'une tuile IGN : {event.data}"
+    if points_trace:
+        carte_widget: ft.Control = ftm.Map(
+            expand=True,
+            initial_center=points_trace[0],
+            initial_zoom=13,
+            layers=[
+                ftm.TileLayer(
+                    url_template=IGN_WMTS_URL,
+                    user_agent_package_name="rando-trail/1.0",
+                    max_zoom=19,
+                    on_image_error=lambda event: print(
+                        f"Erreur de chargement d'une tuile IGN : {event.data}"
+                    ),
+                ),
+                ftm.SimpleAttribution(text="© IGN - Géoplateforme"),
+                ftm.PolylineLayer(
+                    polylines=[
+                        ftm.PolylineMarker(
+                            coordinates=points_trace,
+                            color=ft.Colors.RED,
+                            border_color=ft.Colors.RED,
+                            border_stroke_width=4,
+                        )
+                    ]
+                ),
+                ftm.MarkerLayer(
+                    markers=[
+                        ftm.Marker(
+                            coordinates=points_trace[0],
+                            content=ft.Icon(
+                                ft.Icons.LOCATION_ON,
+                                color=ft.Colors.GREEN,
+                                size=32,
+                            ),
+                        ),
+                        ftm.Marker(
+                            coordinates=points_trace[-1],
+                            content=ft.Icon(
+                                ft.Icons.FLAG,
+                                color=ft.Colors.RED,
+                                size=30,
+                            ),
+                        ),
+                    ]
+                ),
+            ],
+        )
+        resume_trace = [
+            ft.Text("Résumé du tracé", size=18, weight=ft.FontWeight.BOLD),
+            ft.Text(f"Points enregistrés : {len(points_trace)}"),
+            ft.ListTile(
+                leading=ft.Icon(ft.Icons.LOCATION_ON, color=ft.Colors.GREEN),
+                title=ft.Text("Départ"),
+                subtitle=ft.Text(
+                    f"{points_trace[0].latitude:.4f}, {points_trace[0].longitude:.4f}"
                 ),
             ),
-            ftm.SimpleAttribution(text="© IGN - Géoplateforme"),
-            ftm.PolylineLayer(
-                polylines=[
-                    ftm.PolylineMarker(
-                        coordinates=coordinates,
-                        color=ft.Colors.RED,
-                        border_color=ft.Colors.RED,
-                        border_stroke_width=4,
-                    )
-                ]
+            ft.ListTile(
+                leading=ft.Icon(ft.Icons.FLAG, color=ft.Colors.RED),
+                title=ft.Text("Arrivée"),
+                subtitle=ft.Text(
+                    f"{points_trace[-1].latitude:.4f}, {points_trace[-1].longitude:.4f}"
+                ),
             ),
-            ftm.MarkerLayer(
-                markers=[
-                    ftm.Marker(
-                        coordinates=ftm.MapLatitudeLongitude(
-                            latitude=etape["latitude"],
-                            longitude=etape["longitude"],
-                        ),
-                        content=ft.Icon(
-                            ft.Icons.LOCATION_ON,
-                            color=ft.Colors.RED,
-                            size=32,
-                        ),
-                    )
-                    for _, etape in ITINERAIRE.iterrows()
-                ]
-            ),
-        ],
-    )
+        ]
+    else:
+        carte_fond = ftm.Map(
+            expand=True,
+            initial_center=CENTRE,
+            initial_zoom=12,
+            layers=[
+                ftm.TileLayer(
+                    url_template=IGN_WMTS_URL,
+                    user_agent_package_name="rando-trail/1.0",
+                    max_zoom=19,
+                    on_image_error=lambda event: print(
+                        f"Erreur de chargement d'une tuile IGN : {event.data}"
+                    ),
+                ),
+                ftm.SimpleAttribution(text="© IGN - Géoplateforme"),
+            ],
+        )
+        carte_widget = ft.Stack(
+            expand=True,
+            controls=[
+                carte_fond,
+                ft.Container(
+                    content=ft.Text(
+                        "Cette trace n'est pas disponible",
+                        size=18,
+                        weight=ft.FontWeight.BOLD,
+                        color=ft.Colors.WHITE,
+                    ),
+                    bgcolor=ft.Colors.with_opacity(0.8, ft.Colors.BLACK),
+                    padding=ft.padding.symmetric(horizontal=20, vertical=12),
+                    border_radius=8,
+                    alignment=ft.Alignment.CENTER,
+                ),
+            ],
+        )
+        resume_trace = [
+            ft.Text("Résumé du tracé", size=18, weight=ft.FontWeight.BOLD),
+            ft.Text("Cette trace n'est pas disponible"),
+        ]
 
-    # Affiche les informations de la randonnée avant le résumé des étapes.
-    description_affichee = description.strip() if description else "Non renseignée"
+    description_affichee = description.strip() if description else "Non renseignée",
+            
     etapes = ft.Column(
         controls=[
             ft.Text("Description", weight=ft.FontWeight.BOLD),
-            ft.Text(description_affichee),
+            ft.Card(content=ft.Container(ft.Column(ft.Text(description_affichee),scroll=ft.ScrollMode.AUTO),),),
             ft.Text(
                 f"Dénivelé positif : {denivele_positif:+g} m"
                 if denivele_positif is not None
@@ -158,18 +223,7 @@ def afficher_carte(
                 if altitude_max is not None
                 else "Altitude maximale : Non renseignée"
             ),
-            ft.Text("Résumé des étapes", size=18, weight=ft.FontWeight.BOLD),
-            ft.Text("Tracé indicatif, à adapter aux données réelles."),
-            *[
-                ft.ListTile(
-                    leading=ft.Icon(ft.Icons.LOCATION_ON, color=ft.Colors.RED),
-                    title=ft.Text(etape["étape"]),
-                    subtitle=ft.Text(
-                        f'{etape["latitude"]:.4f}, {etape["longitude"]:.4f}'
-                    ),
-                )
-                for _, etape in ITINERAIRE.iterrows()
-            ],
+            *resume_trace,
         ],
         spacing=8,
         width=280,
@@ -199,7 +253,6 @@ def afficher_carte(
         spacing=0,
     )
 
-    # Place le bouton de retour au-dessus de la liste et de la carte.
     page.add(
         ft.SafeArea(
             expand=True,
@@ -209,7 +262,7 @@ def afficher_carte(
                     ft.Row(
                         controls=[
                             ft.Container(content=etapes, padding=16),
-                            ft.Container(content=carte, expand=True),
+                            ft.Container(content=carte_widget, expand=True),
                         ],
                         expand=True,
                         spacing=0,
@@ -221,7 +274,6 @@ def afficher_carte(
         )
     )
     page.update()
-
 
 def main(page: ft.Page) -> None:
     afficher_carte(page)
