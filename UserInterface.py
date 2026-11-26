@@ -9,6 +9,7 @@ from Test_map import afficher_carte
 conn = sqlite3.connect("rando29.db")
 cur = conn.cursor()
 
+#Définition de la structure randonnée (reflet de notre table RANDONNEE in DB)
 @dataclass(frozen=True)
 class Randonnee:
     nom: str
@@ -23,16 +24,12 @@ class Randonnee:
     altitude_min: int | None = None
     altitude_max: int | None = None
 
-
-def req_sql(
-    ville_flet=None,
-    distancekm_flet=None,
-    boucle_flet=None,
-    difficulte_flet=None,
-):
-    conditions = []
+# Format les saisies utilisateur, execute la requète sql et retourne chaque ligne
+def req_sql(ville_flet=None,distancekm_flet=None,boucle_flet=None,difficulte_flet=None):
+    conditions = [] # stock les requetes des filtres récupérés
     parametres = []
 
+    #------------------------------------------------ Formatage des saisies -----
     if ville_flet and str(ville_flet).strip():
         conditions.append("TRIM(c.communes_nom) = TRIM(?) COLLATE NOCASE")
         parametres.append(str(ville_flet).strip())
@@ -46,21 +43,20 @@ def req_sql(
     boucle = str(boucle_flet or "").strip()
     if boucle.casefold() == "boucle":
         conditions.append("LOWER(TRIM(r.type_itineraire)) = 'boucle'")
-    elif boucle.casefold() == "sans boucle":
+    elif boucle.casefold() == "aller simple":
         conditions.append(
             "LOWER(TRIM(r.type_itineraire)) IN ('aller simple', 'aller-retour')"
         )
-    elif boucle.casefold() not in ("", "tous", "peu importe"):
+    elif boucle.casefold() not in ("","peu importe"):
         conditions.append("LOWER(TRIM(r.type_itineraire)) = LOWER(TRIM(?))")
         parametres.append(boucle)
 
     difficulte = str(difficulte_flet or "").strip()
-    if difficulte.casefold() not in ("", "toutes", "tous", "peu importe"):
-        if difficulte.casefold() == "modérée":
-            difficulte = "Moyen"
+    if difficulte.casefold() not in ("", "toutes"):
         conditions.append("r.difficulte = ? COLLATE NOCASE")
         parametres.append(difficulte)
 
+    #Création de la requête
     requete = """
         SELECT r.nom_itineraire, c.communes_nom, r.longueur, r.presentation,
                r.difficulte, r.altitude_min, r.altitude_max,
@@ -69,12 +65,12 @@ def req_sql(
         FROM randonnee AS r
         JOIN communes AS c ON r.communes_code = c.communes_code
     """
+    #Ajoute des conditions en fonction des filtre enregistrés dans condition
     if conditions:
         requete += " WHERE " + " AND ".join(conditions)
 
     cur.execute(requete, parametres)
     data = cur.fetchall()
-    print(data)
     return data
 
 def FindRando(ville1,distance1,format_boucle1,difficulte1):
@@ -110,39 +106,31 @@ def main(page: ft.Page) -> None: #--------------------------------------------- 
     page.padding = 0
 
     # Filtres de recherche avec des valeurs d'exemple modifiables.
-    ville = ft.TextField(label="Ville", value="Saint-Brieuc")
-    distance = ft.TextField(
-        label="Distance maximale (km)",
-        value="20",
-        keyboard_type=ft.KeyboardType.NUMBER,
-    )
-    format_boucle = ft.Dropdown(
-        label="Format",
-        value="Peu importe",
+    ville = ft.TextField(label="Ville", hint_text="Ex. Saint-Brieuc")
+    distance = ft.TextField(label="Distance maximale (km)",hint_text="Ex. 20",keyboard_type=ft.KeyboardType.NUMBER)
+    
+    format_boucle = ft.Dropdown(label="Format",value="Peu importe",
         options=[
             ft.DropdownOption(key="Peu importe", text="Peu importe"),
             ft.DropdownOption(key="Boucle", text="Boucle"),
-            ft.DropdownOption(key="Sans boucle", text="Sans boucle"),
-        ],
-    )
-    difficulte = ft.Dropdown(
-        label="Difficulté",
-        value="Toutes",
-        options=[
+            ft.DropdownOption(key="Aller simple", text="Aller simple"),
+        ],)
+    difficulte = ft.Dropdown(label="Difficulté",value="Toutes",options=[
             ft.DropdownOption(key="Toutes", text="Toutes"),
             ft.DropdownOption(key="Facile", text="Facile"),
-            ft.DropdownOption(key="Modérée", text="Modérée"),
+            ft.DropdownOption(key="Moyen", text="Moyen"),
             ft.DropdownOption(key="Difficile", text="Difficile"),
-        ],
-    )
+        ],)
+    
     message_erreur = ft.Text(color=ft.Colors.RED)
         
-    # Panneau de résultats : les cartes sont remplacées à chaque recherche.
+    # Panneau de résultats : les cartes sont remplacées à chaque recherche par chaque ligne de la nouvelle liste randonnée
     nombre_resultats = ft.Text()
     liste_resultats = ft.Column(expand=True, scroll=ft.ScrollMode.AUTO, spacing=10)
 
-    def afficher_resultats(randonnees: list[Randonnee]) -> None:
+    def afficher_resultats(randonnees: list[Randonnee]) -> None: #Creer et affiche les widgets pour chaque ligne de la liste randonnee
         nombre_resultats.value = f"{len(randonnees)} randonnée(s) trouvée(s)"
+        #Création d'un widget card pour chaque randonnée issue de la requête
         liste_resultats.controls = [
             ft.Card(
                 content=ft.ListTile(
@@ -155,10 +143,11 @@ def main(page: ft.Page) -> None: #--------------------------------------------- 
                         f"{'Boucle' if randonnee.boucle else 'Sans boucle'} · "
                         f"{randonnee.difficulte}"
                     ),
+                    #Ajout d'une fonction bouton sur le widget lié à la page de visualisation de la carte
                     on_click=lambda _event, selection=randonnee: afficher_carte(
                         page,
                         selection.nom,
-                        retour=lambda: afficher_recherche(page),
+                        retour=lambda: afficher_recherche(page),# Gestion du bouton retour lié à la page de recherche
                         description=selection.description,
                         denivele_positif=selection.denivele_positif,
                         denivele_negatif=selection.denivele_negatif,
@@ -169,12 +158,14 @@ def main(page: ft.Page) -> None: #--------------------------------------------- 
             )
             for randonnee in randonnees
         ]
+        #Si aucune randonnée trouvée
         if not randonnees:
             liste_resultats.controls.append(ft.Text("Aucune randonnée trouvée."))
 
     def afficher_recherche(_page: ft.Page) -> None:
         main(_page)
 
+#Vérifie le format des champs de saisies et lance la fonction req_sql et affiche les résultat
     def lancer_recherche(_event: ft.ControlEvent) -> None:
         try:
             distance_max = float((distance.value or "").strip().replace(",", "."))
@@ -182,19 +173,20 @@ def main(page: ft.Page) -> None: #--------------------------------------------- 
             message_erreur.value = "Saisir une distance valide, par exemple 15."
             page.update()
             return
-
+        
         if not isfinite(distance_max) or distance_max <= 0:
             message_erreur.value = "La distance doit être un nombre positif."
             page.update()
             return
 
         message_erreur.value = ""
-
+        #Si pas de problème, on lance la requète vers la BDD
         RANDONNEES = FindRando(ville.value or '',distance_max,format_boucle.value,difficulte.value)
         #Lancement des fonctions de recherche et d'affichage
         afficher_resultats(RANDONNEES)
         page.update()
 
+    #Structuration de la colonne d'affichage des filtres
     filtres = ft.Column(
         controls=[
             ft.Text("Filtres de recherche", size=22, weight=ft.FontWeight.BOLD),
@@ -214,7 +206,7 @@ def main(page: ft.Page) -> None: #--------------------------------------------- 
         spacing=14,
         scroll=ft.ScrollMode.AUTO,
     )
-
+    #Ajout de tous les widgets créés et sctructuration sur la page
     page.add(
         ft.SafeArea(
             expand=True,
@@ -245,7 +237,9 @@ def main(page: ft.Page) -> None: #--------------------------------------------- 
             ),
         )
     )
-    afficher_resultats(FindRando(ville.value or '',float((distance.value or "").strip().replace(",", ".")),format_boucle.value,difficulte.value))
+    #affichage des résultats une première fois
+    dist = float(distance.value.strip().replace(",", ".")) if distance.value else None 
+    afficher_resultats(FindRando(ville.value or '',dist,format_boucle.value,difficulte.value))
     page.update()
 
 
