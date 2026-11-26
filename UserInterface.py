@@ -24,7 +24,12 @@ class Randonnee:
     altitude_max: int | None = None
 
 
-def req_sql(ville_flet=None,distancekm_flet=None,transports_flet=None,boucle_flet=None,difficulte_flet=None):
+def req_sql(
+    ville_flet=None,
+    distancekm_flet=None,
+    boucle_flet=None,
+    difficulte_flet=None,
+):
     conditions = []
     parametres = []
 
@@ -37,21 +42,6 @@ def req_sql(ville_flet=None,distancekm_flet=None,transports_flet=None,boucle_fle
         parametres.append(
             float(str(distancekm_flet).strip().replace(",", ".")) * 1000
         )
-
-    transport = str(transports_flet or "").strip()
-    if transport.casefold() not in ("", "tous", "peu importe"):
-        if transport.casefold() in ("à pied", "pédestre"):
-            conditions.append("r.pratique = ?")
-            parametres.append("Pédestre")
-        elif transport.casefold() in ("vélo", "à vélo"):
-            conditions.append("r.pratique IN (?, ?)")
-            parametres.extend(("Vélo", "VTT"))
-        elif transport.casefold() in ("cheval", "à cheval"):
-            conditions.append("r.pratique = ?")
-            parametres.append("Equestre")
-        else:
-            conditions.append("r.pratique = ?")
-            parametres.append(transport)
 
     boucle = str(boucle_flet or "").strip()
     if boucle.casefold() == "boucle":
@@ -87,52 +77,47 @@ def req_sql(ville_flet=None,distancekm_flet=None,transports_flet=None,boucle_fle
     print(data)
     return data
 
-res = req_sql(None,40,"Pédestre","aller simple","Difficile")
-'''count=0
-for i in res:
-    count+=1
-    print(i)
-    print(count)
-'''
+def FindRando(ville1,distance1,format_boucle1,difficulte1):
+    res = req_sql(ville1, distance1, format_boucle1, difficulte1)
 
-randonnees = []
+    randonnees = []
 
-for ligne in res:
-    (
-        nom,
-        ville,
-        distance,
-        presentation,
-        difficulte,
-        altitude_min,
-        altitude_max,
-        denivele_negatif,
-        denivele_positif,
-        transport,
-        type_itineraire,
-    ) = ligne
+    for ligne in res:
+        (
+            nom,
+            ville,
+            distance,
+            presentation,
+            difficulte,
+            altitude_min,
+            altitude_max,
+            denivele_negatif,
+            denivele_positif,
+            transport,
+            type_itineraire,
+        ) = ligne
 
-    transports = (
-        (transport,) if isinstance(transport, str) else tuple(transport or ())
-    )
-
-    randonnees.append(
-        Randonnee(
-            nom=nom,
-            ville=ville.strip(),
-            distance_km=float(distance) / 1000,
-            transports=transports,
-            boucle=(type_itineraire or "").strip().casefold() == "boucle",
-            difficulte=difficulte or "Non renseignée",
-            description=presentation or "",
-            denivele_positif=denivele_positif,
-            denivele_negatif=denivele_negatif,
-            altitude_min=altitude_min,
-            altitude_max=altitude_max,
+        transports = (
+            (transport,) if isinstance(transport, str) else tuple(transport or ())
         )
-    )
 
-RANDONNEES_EXEMPLE = tuple(randonnees)
+        randonnees.append(
+            Randonnee(
+                nom=nom,
+                ville=ville.strip(),
+                distance_km=float(distance) / 1000,
+                transports=transports,
+                boucle=(type_itineraire or "").strip().casefold() == "boucle",
+                difficulte=difficulte or "Non renseignée",
+                description=presentation or "",
+                denivele_positif=denivele_positif,
+                denivele_negatif=denivele_negatif,
+                altitude_min=altitude_min,
+                altitude_max=altitude_max,
+            )
+        )
+
+    return randonnees
 '''
 # Randonnées fictives utilisées comme exemples dans l'interface.
 RANDONNEES_EXEMPLE = (
@@ -217,12 +202,13 @@ RANDONNEES_EXEMPLE = (
 )
 '''
 
+'''
 def rechercher_randonnees(
     ville: str,
     distance_max: float,
-    transport: str,
     format_boucle: str,
     difficulte: str,
+    RANDONNEES_EXEMPLE,
 ) -> list[Randonnee]:
     ville_recherchee = ville.strip().casefold()
     return [
@@ -230,13 +216,13 @@ def rechercher_randonnees(
         for randonnee in RANDONNEES_EXEMPLE
         if (not ville_recherchee or ville_recherchee in randonnee.ville.casefold())
         and randonnee.distance_km <= distance_max
-        and (transport == "Tous" or transport in randonnee.transports)
         and (
             format_boucle == "Peu importe"
             or randonnee.boucle == (format_boucle == "Boucle")
         )
         and (difficulte == "Toutes" or randonnee.difficulte == difficulte)
     ]
+'''
 
 
 def main(page: ft.Page) -> None:
@@ -250,16 +236,6 @@ def main(page: ft.Page) -> None:
         label="Distance maximale (km)",
         value="20",
         keyboard_type=ft.KeyboardType.NUMBER,
-    )
-    transport = ft.Dropdown(
-        label="Moyen de transport",
-        value="Tous",
-        options=[
-            ft.DropdownOption(key="Tous", text="Tous"),
-            ft.DropdownOption(key="Vélo", text="À vélo"),
-            ft.DropdownOption(key="À pied", text="À pied"),
-            ft.DropdownOption(key="Cheval", text="À cheval"),
-        ],
     )
     format_boucle = ft.Dropdown(
         label="Format",
@@ -320,11 +296,14 @@ def main(page: ft.Page) -> None:
     def afficher_recherche(_page: ft.Page) -> None:
         main(_page)
 
+    distance_max = float((distance.value or "").strip().replace(",", "."))
+    RANDONNEES = FindRando(ville.value or '',distance_max,format_boucle.value,difficulte.value)
+
     def lancer_recherche(_event: ft.ControlEvent) -> None:
         try:
             distance_max = float((distance.value or "").strip().replace(",", "."))
         except ValueError:
-            message_erreur.value = "Saisis une distance valide, par exemple 15."
+            message_erreur.value = "Saisir une distance valide, par exemple 15."
             page.update()
             return
 
@@ -335,15 +314,7 @@ def main(page: ft.Page) -> None:
 
         message_erreur.value = ""
         #Lancement des fonctions de recherche et d'affichage
-        afficher_resultats(
-            rechercher_randonnees(
-                ville.value or "",
-                distance_max,
-                transport.value or "Tous",
-                format_boucle.value or "Peu importe",
-                difficulte.value or "Toutes",
-            )
-        )
+        afficher_resultats(RANDONNEES)
         page.update()
 
     filtres = ft.Column(
@@ -352,7 +323,6 @@ def main(page: ft.Page) -> None:
             ft.Text("Choisis tes critères pour trouver une randonnée."),
             ville,
             distance,
-            transport,
             format_boucle,
             difficulte,
             message_erreur,
@@ -397,7 +367,7 @@ def main(page: ft.Page) -> None:
             ),
         )
     )
-    afficher_resultats(list(RANDONNEES_EXEMPLE))
+    afficher_resultats(RANDONNEES)
     page.update()
 
 
