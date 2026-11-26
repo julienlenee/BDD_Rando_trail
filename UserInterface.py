@@ -86,13 +86,53 @@ def req_sql(ville_flet=None,distancekm_flet=None,transports_flet=None,boucle_fle
     data = cur.fetchall()
     print(data)
     return data
-'''test
+
 res = req_sql(None,40,"Pédestre","aller simple","Difficile")
-count=0
+'''count=0
 for i in res:
     count+=1
     print(i)
     print(count)
+'''
+
+randonnees = []
+
+for ligne in res:
+    (
+        nom,
+        ville,
+        distance,
+        presentation,
+        difficulte,
+        altitude_min,
+        altitude_max,
+        denivele_negatif,
+        denivele_positif,
+        transport,
+        type_itineraire,
+    ) = ligne
+
+    transports = (
+        (transport,) if isinstance(transport, str) else tuple(transport or ())
+    )
+
+    randonnees.append(
+        Randonnee(
+            nom=nom,
+            ville=ville.strip(),
+            distance_km=float(distance) / 1000,
+            transports=transports,
+            boucle=(type_itineraire or "").strip().casefold() == "boucle",
+            difficulte=difficulte or "Non renseignée",
+            description=presentation or "",
+            denivele_positif=denivele_positif,
+            denivele_negatif=denivele_negatif,
+            altitude_min=altitude_min,
+            altitude_max=altitude_max,
+        )
+    )
+
+RANDONNEES_EXEMPLE = tuple(randonnees)
 '''
 # Randonnées fictives utilisées comme exemples dans l'interface.
 RANDONNEES_EXEMPLE = (
@@ -175,7 +215,7 @@ RANDONNEES_EXEMPLE = (
         48,
     ),
 )
-
+'''
 
 def rechercher_randonnees(
     ville: str,
@@ -294,6 +334,7 @@ def main(page: ft.Page) -> None:
             return
 
         message_erreur.value = ""
+        #Lancement des fonctions de recherche et d'affichage
         afficher_resultats(
             rechercher_randonnees(
                 ville.value or "",
