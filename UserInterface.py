@@ -118,114 +118,8 @@ def FindRando(ville1,distance1,format_boucle1,difficulte1):
         )
 
     return randonnees
-'''
-# Randonnées fictives utilisées comme exemples dans l'interface.
-RANDONNEES_EXEMPLE = (
-    Randonnee(
-        "Tour du port du Légué",
-        "Saint-Brieuc",
-        5.2,
-        ("À pied", "Vélo"),
-        True,
-        "Facile",
-        "Balade d'exemple autour du port et des sentiers de Saint-Brieuc.",
-        75,
-        -75,
-        4,
-        55,
-    ),
-    Randonnee(
-        "Balade des Rosaires",
-        "Plérin",
-        8.4,
-        ("À pied", "Cheval"),
-        True,
-        "Facile",
-        "Découverte des plages et du littoral de Plérin.",
-        52,
-        -50,
-        0,
-        45,
-    ),
-    Randonnee(
-        "Boucle du Gouët",
-        "Ploufragan",
-        14.0,
-        ("Vélo", "Cheval"),
-        True,
-        "Modérée",
-        "Parcours vallonné autour de la vallée du Gouët.",
-        185,
-        -185,
-        15,
-        145,
-    ),
-    Randonnee(
-        "Sentier côtier de Binic",
-        "Binic",
-        12.5,
-        ("À pied",),
-        False,
-        "Modérée",
-        "Suivez le sentier côtier et ses points de vue.",
-        140,
-        -140,
-        0,
-        80,
-    ),
-    Randonnee(
-        "Chemins de campagne",
-        "Plélo",
-        18.0,
-        ("Cheval",),
-        True,
-        "Difficile",
-        "Chemins de campagne sur les hauteurs de Plélo.",
-        230,
-        -230,
-        40,
-        190,
-    ),
-    Randonnee(
-        "Circuit de la baie",
-        "Langueux",
-        9.8,
-        ("À pied", "Vélo"),
-        False,
-        "Facile",
-        "Balade d'exemple entre la baie et les chemins de Langueux.",
-        62,
-        -60,
-        0,
-        48,
-    ),
-)
-'''
 
-'''
-def rechercher_randonnees(
-    ville: str,
-    distance_max: float,
-    format_boucle: str,
-    difficulte: str,
-    RANDONNEES_EXEMPLE,
-) -> list[Randonnee]:
-    ville_recherchee = ville.strip().casefold()
-    return [
-        randonnee
-        for randonnee in RANDONNEES_EXEMPLE
-        if (not ville_recherchee or ville_recherchee in randonnee.ville.casefold())
-        and randonnee.distance_km <= distance_max
-        and (
-            format_boucle == "Peu importe"
-            or randonnee.boucle == (format_boucle == "Boucle")
-        )
-        and (difficulte == "Toutes" or randonnee.difficulte == difficulte)
-    ]
-'''
-
-
-def main(page: ft.Page) -> None:
+def main(page: ft.Page) -> None: #--------------------------------------------- MAIN -------------
     page.controls.clear()
     page.title = "Recherche de randonnées"
     page.padding = 0
@@ -296,9 +190,6 @@ def main(page: ft.Page) -> None:
     def afficher_recherche(_page: ft.Page) -> None:
         main(_page)
 
-    distance_max = float((distance.value or "").strip().replace(",", "."))
-    RANDONNEES = FindRando(ville.value or '',distance_max,format_boucle.value,difficulte.value)
-
     def lancer_recherche(_event: ft.ControlEvent) -> None:
         try:
             distance_max = float((distance.value or "").strip().replace(",", "."))
@@ -313,6 +204,8 @@ def main(page: ft.Page) -> None:
             return
 
         message_erreur.value = ""
+
+        RANDONNEES = FindRando(ville.value or '',distance_max,format_boucle.value,difficulte.value)
         #Lancement des fonctions de recherche et d'affichage
         afficher_resultats(RANDONNEES)
         page.update()
@@ -367,7 +260,7 @@ def main(page: ft.Page) -> None:
             ),
         )
     )
-    afficher_resultats(RANDONNEES)
+    afficher_resultats(FindRando(ville.value or '',float((distance.value or "").strip().replace(",", ".")),format_boucle.value,difficulte.value))
     page.update()
 
 
