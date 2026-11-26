@@ -72,30 +72,25 @@ def geometry_vers_points(geometry: str | None) -> list[ftm.MapLatitudeLongitude]
 
     return points
 
+# Fonctions qui permet de récupérer un texte de description propre et lisible (on enlève les [],?,!,& qui pourrait être présent)
 def nettoyer_description(texte: str | None) -> str:
     if not texte:
         return ""
 
     propre = str(texte).strip()
 
-    # Retire d'éventuels crochets englobant tout le texte, ex. ["<p>..."] ou [<p>...]
     if propre.startswith("[") and propre.endswith("]"):
         propre = propre[1:-1].strip()
 
-    # Décode les entités HTML (&eacute;, &agrave;, &rsquo;, etc.)
     propre = html.unescape(propre)
-
-    # Supprime les balises HTML (<p>, </p>, <br>, etc.)
     propre = re.sub(r"<[^>]+>", " ", propre)
-
-    # Nettoie les espaces multiples et les espaces avant la ponctuation
     propre = re.sub(r"\s+", " ", propre)
     propre = re.sub(r"\s+([!?;:])", r"\1", propre)
 
     return propre.strip()   
 
 
-
+# Fonction principal qui va nous permettre d'afficher la carte
 def afficher_carte(
     page: ft.Page,
     nom_randonnee: str | None = None,
@@ -107,7 +102,7 @@ def afficher_carte(
     denivele_negatif: int | float | None = None,
     altitude_min: int | float | None = None,
     altitude_max: int | float | None = None,
-) -> None:
+):
     page.controls.clear()
     page.padding = 0
     page.title = nom_randonnee or "Randonnée dans les Côtes-d'Armor"
